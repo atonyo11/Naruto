@@ -115,33 +115,54 @@
     }
 
     function isFingerExtended(tip, pip, mcp, wrist) {
-      return tip.y < pip.y && pip.y < mcp.y && tip.y < wrist.y;
+      // Kiểm tra ngón tay duỗi thẳng: tip cao hơn pip, pip cao hơn mcp
+      // Lưu ý: trong tọa độ MediaPipe, y càng nhỏ càng ở trên
+      return tip.y < pip.y && pip.y < mcp.y;
     }
 
     function isOpenPalmHeuristic(landmarks) {
       const wrist = landmarks[0];
-      const thumbOpen = Math.abs(landmarks[4].x - landmarks[2].x) > 0.06;
+      
+      // Kiểm tra ngón cái dang ra
+      const thumbTip = landmarks[4];
+      const thumbIp = landmarks[3];
+      const thumbMcp = landmarks[2];
+      const thumbOpen = Math.abs(thumbTip.x - thumbMcp.x) > 0.04;
+      
+      // Kiểm tra 4 ngón tay duỗi thẳng
       const indexOpen = isFingerExtended(landmarks[8], landmarks[6], landmarks[5], wrist);
       const middleOpen = isFingerExtended(landmarks[12], landmarks[10], landmarks[9], wrist);
       const ringOpen = isFingerExtended(landmarks[16], landmarks[14], landmarks[13], wrist);
       const pinkyOpen = isFingerExtended(landmarks[20], landmarks[18], landmarks[17], wrist);
+      
       const extendedCount = [indexOpen, middleOpen, ringOpen, pinkyOpen].filter(Boolean).length;
+      
+      // Chỉ cần 3 ngón duỗi thẳng và ngón cái dang ra
       return extendedCount >= 3 && thumbOpen;
     }
 
     function isClosedPalmHeuristic(landmarks) {
       const wrist = landmarks[0];
-      const curled =
-        landmarks[8].y > landmarks[6].y &&
-        landmarks[12].y > landmarks[10].y &&
-        landmarks[16].y > landmarks[14].y &&
-        landmarks[20].y > landmarks[18].y;
-
-      const thumbClosed = Math.abs(landmarks[4].x - landmarks[2].x) < 0.05;
-      const compactPalm =
-        distance(landmarks[8], wrist) < distance(landmarks[5], wrist) * 1.15 &&
-        distance(landmarks[12], wrist) < distance(landmarks[9], wrist) * 1.15;
-
+      
+      // Kiểm tra các ngón tay cong vào lòng bàn tay
+      const indexCurled = landmarks[8].y > landmarks[6].y;
+      const middleCurled = landmarks[12].y > landmarks[10].y;
+      const ringCurled = landmarks[16].y > landmarks[14].y;
+      const pinkyCurled = landmarks[20].y > landmarks[18].y;
+      
+      const curled = indexCurled && middleCurled && ringCurled && pinkyCurled;
+      
+      // Kiểm tra ngón cái cụp vào
+      const thumbTip = landmarks[4];
+      const thumbMcp = landmarks[2];
+      const thumbClosed = Math.abs(thumbTip.x - thumbMcp.x) < 0.05;
+      
+      // Kiểm tra khoảng cách từ các đầu ngón tay đến cổ tay (ngắn hơn khi nắm tay)
+      const compactIndex = distance(landmarks[8], wrist) < distance(landmarks[5], wrist) * 1.2;
+      const compactMiddle = distance(landmarks[12], wrist) < distance(landmarks[9], wrist) * 1.2;
+      
+      const compactPalm = compactIndex && compactMiddle;
+      
       return curled && (thumbClosed || compactPalm);
     }
 
@@ -176,6 +197,8 @@
         const scale = estimatePalmScale(landmarks);
         const isOpen = isOpenGesture(result, i);
         const isClosed = isClosedGesture(result, i);
+
+        console.log(`Hand ${i}: isOpen=${isOpen}, isClosed=${isClosed}, scale=${scale.toFixed(2)}`);
 
         if (isClosed) {
           anyClosed = true;
@@ -235,13 +258,14 @@
       gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath:
-            "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task"
+            "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task",
+          delegate: "GPU"
         },
         runningMode: "VIDEO",
         numHands: 2,
-        minHandDetectionConfidence: 0.6,
-        minHandPresenceConfidence: 0.6,
-        minTrackingConfidence: 0.55
+        minHandDetectionConfidence: 0.5,
+        minHandPresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5
       });
 
       setStatus("MediaPipe ready.");
