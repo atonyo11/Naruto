@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shuriken AR Effect</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <video id="camera" autoplay playsinline muted></video>
+
+    <div id="fxLayer">
+      <video
+        id="shurikenFx"
+        class="fx"
+        loop
+        playsinline
+      >
+        <source src="naruto.gif" type="video/mp4" />
+      </video>
+    </div>
+
+    <div id="hud">
+      <div class="title">Shuriken</div>
+      <div class="sub">
+        Mở tay trái hoặc tay phải thì đều hiện Shuriken.
+      </div>
+      <div id="status">Loading…</div>
+    </div>
+
+    <div id="guide">
+      Giữ một bàn tay trong khung hình, lòng bàn tay hướng về camera, các ngón tay mở ra để kích hoạt Shuriken.
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
